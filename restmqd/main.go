@@ -60,6 +60,7 @@ func main() {
 		}()
 
 	}
+	wg.Wait()
 }
 
 func logger(w http.ResponseWriter, r *http.Request) {
