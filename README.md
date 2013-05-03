@@ -21,10 +21,12 @@ Install, uninstall:
 	sudo make install
 	sudo make uninstall
 
-## Developers
+## Devops
 
 `restmq` is the library, currently using Redis as the backend storage.
 `restmqd` is the http and https server that ships with the library.
+
+Lots of TODO in the source.
 
 ## Stuff we do
 
