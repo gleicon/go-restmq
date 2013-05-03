@@ -1,4 +1,7 @@
-*.swp
 *~
+*.swp
 *DS_Store*
+cert/*.key
+cert/*.crt
+cert/*.csr
 restmqd/restmqd
