@@ -30,10 +30,21 @@ Lots of TODO in the source, examples and test cases.
 
 ## Testing
 
-Use curl to test functionality:
+Use curl to test functionality.
+
+Add new item *bar* into the queue *foo*:
 
 	curl -v -d 'value=bar' http://localhost:8080/q/foo
+
+Get the next item from queue *foo*:
+
 	curl -v http://localhost:8080/q/foo
+
+Use comet (SSE) to subscribe to queue *foo* and get new items as they're
+created, in real time:
+
+	curl -v http://localhost:8080/c/foo
+
 
 ## Stuff we do
 

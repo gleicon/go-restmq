@@ -20,6 +20,7 @@ import (
 var VERSION = "2.0.0"
 var cfg ConfigData
 var rmq *restmq.RestMQ
+var queues *QueueGroup
 
 func main() {
 	cf := flag.String("config", "restmqd.xml", "set config file")
@@ -27,6 +28,7 @@ func main() {
 	if err := ReadConfig(*cf, &cfg); err != nil {
 		log.Fatal(err)
 	}
+	queues = NewQueueGroup()
 	// Use all CPUs available.
 	numCPU := runtime.NumCPU()
 	label := "CPU"
@@ -39,7 +41,10 @@ func main() {
 	rmq = restmq.New("127.0.0.1:6379")
 	// HTTP handlers
 	remux.HandleFunc("^/$", IndexHandler)
-	remux.HandleFunc("^/q/([a-zA-Z0-9]+)$", QueueHandler)
+	qn := "([a-zA-Z0-9]+)$"
+	remux.HandleFunc("^/q/"+qn, QueueHandler)
+	remux.HandleFunc("^/c/"+qn, CometQueueHandler)
+	remux.HandleFunc("^/ws/"+qn, WebSocketQueueHandler)
 	server := http.Server{
 		Handler: remux.DefaultServeMux,
 		Logger:  logger,
