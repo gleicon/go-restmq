@@ -6,23 +6,25 @@ Power up your favorite HTTP client and go.
 RestMQ is implemented as a library that can be embedded in other software,
 but also ships with RestMQ daemon, or `restmqd`.
 
-## Requirements
+## Build, run, install
 
-Make sure the Go installation is ok, $GOPATH is set, and use the following
-command to install required packages to build RestMQ:
+Download required packages:
 
-	go get github.com/fiorix/go-redis/redis
-	go get github.com/fiorix/go-web/http
-	go get github.com/fiorix/go-web/remux
+	make deps
 
-## Building and running
+Build and run dev server:
 
-Both `restmq` and `restmqd` can be built with `go build`.
+	make clean all; ./restmqd/restmqd
 
-Build and execute RestMQ daemon:
+Install, uninstall:
 
-	cd restmqd
-	go build; ./restmqd --config=../restmqd.xml
+	sudo make install
+	sudo make uninstall
+
+## Developers
+
+`restmq` is the library, currently using Redis as the backend storage.
+`restmqd` is the http and https server that ships with the library.
 
 ## Stuff we do
 
