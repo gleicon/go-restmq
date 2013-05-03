@@ -6,3 +6,4 @@ cert/*.crt
 cert/*.csr
 restmqd/restmqd
 *.test
+dump.rdb
