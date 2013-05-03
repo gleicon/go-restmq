@@ -59,7 +59,7 @@ func main() {
 		wg.Add(1)
 		https := server
 		https.Addr = cfg.SSL.Addr
-		log.Printf("Starting HTTP server on %s", https.Addr)
+		log.Printf("Starting HTTPS server on %s", https.Addr)
 		go func() {
 			log.Fatal(https.ListenAndServeTLS(
 				cfg.SSL.CertFile, cfg.SSL.KeyFile))
