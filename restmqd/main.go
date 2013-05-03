@@ -6,12 +6,15 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
+	"net/http"
 	"runtime"
 	"sync"
 	"time"
 
-	"github.com/fiorix/go-web/http"
+	"code.google.com/p/go.net/websocket"
+	"github.com/fiorix/go-web/httpxtra"
 	"github.com/fiorix/go-web/remux"
 
 	"bitbucket.org/gleicon/restmq/restmq"
@@ -44,10 +47,13 @@ func main() {
 	qn := "([a-zA-Z0-9]+)$"
 	remux.HandleFunc("^/q/"+qn, QueueHandler)
 	remux.HandleFunc("^/c/"+qn, CometQueueHandler)
-	remux.HandleFunc("^/ws/"+qn, WebSocketQueueHandler)
+	//remux.HandleFunc("^/ws/"+qn, WebSocketQueueHandler)
+	http.Handle("/ws/", websocket.Handler(WebSocketQueueHandler))
 	server := http.Server{
-		Handler: remux.DefaultServeMux,
-		Logger:  logger,
+		Handler: httpxtra.Handler{
+			Handler: remux.DefaultServeMux,
+			Logger:  logger,
+		},
 	}
 	wg := &sync.WaitGroup{}
 	if cfg.Addr != "" {
@@ -75,16 +81,6 @@ func main() {
 	wg.Wait()
 }
 
-func logger(w http.ResponseWriter, r *http.Request) {
-	var s string
-	if r.TLS != nil {
-		s = "S" // soz no ternary :/
-	}
-	log.Printf("HTTP%s %d %s %s (%s) :: %s",
-		s,
-		w.Status(),
-		r.Method,
-		r.URL.Path,
-		r.RemoteAddr,
-		time.Since(r.Created))
+func logger(r *http.Request, created time.Time, status, bytes int) {
+	fmt.Println(httpxtra.ApacheCommonLog(r, created, status, bytes))
 }
