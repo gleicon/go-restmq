@@ -5,6 +5,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"runtime"
 	"sync"
@@ -17,9 +18,16 @@ import (
 )
 
 var VERSION = "2.0.0"
+var cfg ConfigData
 var rmq *restmq.RestMQ
 
 func main() {
+	cf := flag.String("config", "restmqd.xml", "set config file")
+	flag.Parse()
+	if err := ReadConfig(*cf, &cfg); err != nil {
+		log.Fatal(err)
+	}
+	// Use all CPUs available.
 	numCPU := runtime.NumCPU()
 	label := "CPU"
 	if numCPU > 1 {
@@ -37,25 +45,24 @@ func main() {
 		Logger:  logger,
 	}
 	wg := &sync.WaitGroup{}
-	// TODO: Parse the config file and check whether to startup HTTP
-	if true {
+	if cfg.Addr != "" {
 		wg.Add(1)
 		http := server
-		http.Addr = ":8080" // TODO: Use from config file
+		http.Addr = cfg.Addr
 		log.Printf("Starting HTTP server on %s", http.Addr)
 		go func() {
 			log.Fatal(http.ListenAndServe())
 			wg.Done()
 		}()
 	}
-	// TODO: Parse the config file and check whether to startup HTTPS
-	if false {
+	if cfg.SSL.Addr != "" {
 		wg.Add(1)
 		https := server
-		https.Addr = ":8443"
+		https.Addr = cfg.SSL.Addr
 		log.Printf("Starting HTTP server on %s", https.Addr)
 		go func() {
-			log.Fatal(https.ListenAndServeTLS("", ""))
+			log.Fatal(https.ListenAndServeTLS(
+				cfg.SSL.CertFile, cfg.SSL.KeyFile))
 			wg.Done()
 		}()
 
