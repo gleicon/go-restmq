@@ -1,21 +1,15 @@
+// Copyright 2009-2013 The RestMQ Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
 package main
 
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/fiorix/go-redis/redis"
+
 	"github.com/fiorix/go-web/http"
-	"github.com/fiorix/go-web/remux"
-	"log"
-	"strconv"
-	"time"
 )
-
-var QUEUESET = "QUEUESET"
-var UUID_SUFFIX = ":UUID"
-var QUEUE_SUFFIX = ":queue"
-
-var redis_client *redis.Client
 
 type Response map[string]interface{}
 
@@ -29,20 +23,15 @@ func (r Response) String() (s string) {
 	return
 }
 
-func logger(w http.ResponseWriter, r *http.Request) {
-	log.Printf("HTTP %d %s %s (%s) :: %s",
-		w.Status(),
-		r.Method,
-		r.URL.Path,
-		r.RemoteAddr,
-		time.Since(r.Created))
-}
-
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "tinymq")
 }
 
-func queueHandler(w http.ResponseWriter, r *http.Request) {
+func QueueHandler(w http.ResponseWriter, r *http.Request) {
+}
+
+/*
+func QueueHandler(w http.ResponseWriter, r *http.Request) {
 	queue_name := r.Vars[0]
 	if queue_name == "" {
 		http.Error(w, "Queue name not given", 404)
@@ -108,18 +97,4 @@ func queueHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 }
-
-func main() {
-	redis_client = redis.New("127.0.0.1:6379")
-
-	queue_name_re := "([a-zA-Z0-9]+)$"
-	remux.HandleFunc("^/$", IndexHandler)
-	remux.HandleFunc("^/q/"+queue_name_re, queueHandler)
-	server := http.Server{
-		Addr:    ":8080",
-		Handler: remux.DefaultServeMux,
-		Logger:  logger,
-	}
-	server.ListenAndServe()
-
-}
+*/
