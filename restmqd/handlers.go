@@ -6,8 +6,10 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 
-	"github.com/fiorix/go-web/http"
+	"code.google.com/p/go.net/websocket"
+	"github.com/fiorix/go-web/remux"
 	"github.com/fiorix/go-web/sse"
 )
 
@@ -16,7 +18,7 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func QueueHandler(w http.ResponseWriter, r *http.Request) {
-	queue := r.Vars[0]
+	queue := remux.Vars(r)[0]
 	switch r.Method {
 	case "GET":
 		var soft bool
@@ -59,6 +61,7 @@ func QueueHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func CometQueueHandler(w http.ResponseWriter, r *http.Request) {
+	vars := remux.Vars(r)
 	conn, buf, err := sse.ServeEvents(w)
 	if err != nil {
 		fmt.Println(err)
@@ -66,16 +69,16 @@ func CometQueueHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer conn.Close()
-	cs := queues.Join(r.Vars[0])
+	cs := queues.Join(vars[0])
 	for s := range cs {
 		err = sse.SendEvent(buf, &sse.MessageEvent{Data: s})
 		if err != nil {
 			break
 		}
 	}
-	queues.Part(r.Vars[0], cs)
+	queues.Part(vars[0], cs)
 }
 
-func WebSocketQueueHandler(w http.ResponseWriter, r *http.Request) {
+func WebSocketQueueHandler(ws *websocket.Conn) {
 	// TODO: add/get
 }

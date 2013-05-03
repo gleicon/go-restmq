@@ -7,6 +7,7 @@ PREFIX=/opt/restmq
 all: restmqd/restmqd
 
 deps:
+	go get -u code.google.com/p/go.net/websocket
 	go get -u github.com/fiorix/go-redis/redis
 	go get -u github.com/fiorix/go-web/http
 	go get -u github.com/fiorix/go-web/remux
