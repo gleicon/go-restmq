@@ -5,29 +5,58 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/fiorix/go-web/http"
 )
-
-type Response map[string]interface{}
-
-func (r Response) String() (s string) {
-	b, err := json.Marshal(r)
-	if err != nil {
-		s = ""
-		return
-	}
-	s = string(b)
-	return
-}
 
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "tinymq")
 }
 
 func QueueHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Vars[0] == "" { // queue name
+		http.Error(w, "Queue Not Found. Use /q/queue_name", 404)
+		return
+	}
+	switch r.Method {
+	case "GET":
+		var soft bool
+		if r.FormValue("soft") == "" {
+			soft = false
+		} else {
+			soft = true
+		}
+		item, err := rmq.Get(r.Vars[0], soft)
+		if err != nil {
+			http.Error(w, http.StatusText(503), 503)
+			return
+		}
+		s := item.String()
+		if s == "" {
+			http.Error(w, "Empty queue", 404)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, s)
+	case "POST":
+		v := r.FormValue("value")
+		if v == "" {
+			http.Error(w, "Empty value", 400)
+			return
+		}
+		item, err := rmq.Add(r.Vars[0], v)
+		if err != nil {
+			http.Error(w, http.StatusText(503), 503)
+			return
+		}
+		s := item.String()
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, s)
+	default:
+		w.Header().Set("Allow", "GET, POST")
+		http.Error(w, http.StatusText(405), 405)
+	}
 }
 
 /*

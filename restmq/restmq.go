@@ -14,6 +14,9 @@
 package restmq
 
 import (
+	"encoding/json"
+	"strconv"
+
 	"github.com/fiorix/go-redis/redis"
 )
 
@@ -23,9 +26,20 @@ type RestMQ struct {
 	Redis *redis.Client
 }
 
-var QUEUESET = "QUEUESET"
-var UUID_SUFFIX = ":UUID"
-var QUEUE_SUFFIX = ":queue"
+// Item is the queue item.
+type Item map[string]interface{}
+
+// String returns the JSON-encoded representation of the Item.
+func (it Item) String() string {
+	if len(it) == 0 {
+		return ""
+	}
+	b, err := json.Marshal(it)
+	if err != nil {
+		return ""
+	}
+	return string(b)
+}
 
 // New creates, initializes and returns a new instance of RestMQ.
 // RestMQ instances are thread-safe.
@@ -34,8 +48,23 @@ func New(opts string) *RestMQ {
 }
 
 // Add adds one item into the given queue, which is created on demand.
-func (mq *RestMQ) Add(queue, items string) error {
-	return nil
+func (mq *RestMQ) Add(queue, value string) (Item, error) {
+	item := make(Item)
+	// TODO: Fix for cases when Redis disconnects in between the commands.
+	uuid, err := mq.Redis.Incr(queue_uuid(queue))
+	if err != nil {
+		return item, err
+	}
+	lkey := queue + ":" + strconv.Itoa(uuid)
+	if err := mq.Redis.Set(lkey, value); err != nil {
+		return item, err
+	}
+	if _, err := mq.Redis.LPush(queue_name(queue), lkey); err != nil {
+		return item, err
+	}
+	item["key"] = lkey
+	item["value"] = value
+	return item, nil
 }
 
 // Get returns one item from the given queue.
@@ -46,8 +75,29 @@ func (mq *RestMQ) Add(queue, items string) error {
 //
 // The "hard" get returns an item from the queue without incrementing its
 // reference counter. The item is permanently erased from the queue.
-func (mq *RestMQ) Get(queue string, softget bool) (string, error) {
-	return "", nil
+func (mq *RestMQ) Get(queue string, soft bool) (Item, error) {
+	item := make(Item)
+	var err error
+	qn := queue_name(queue)
+	var k string
+	if soft {
+		k, err = mq.Redis.LIndex(qn, -1)
+	} else {
+		k, err = mq.Redis.RPop(qn)
+	}
+	if err != nil {
+		return item, err // Redis error
+	} else if k == "" {
+		return item, err // Empty queue
+	}
+	var v string
+	v, err = mq.Redis.Get(k)
+	if err != nil {
+		return item, err // Redis error
+	}
+	item["key"] = k
+	item["value"] = v
+	return item, nil
 }
 
 // GetDel is the "hard" Get.
