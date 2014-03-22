@@ -17,6 +17,7 @@ package main
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/fiorix/go-redis/redis"
 )
@@ -85,10 +86,10 @@ func (mq *Queue) Get(queue string, soft bool) (*Item, error) {
 	if err != nil {
 		return nil, err // Redis error
 	}
-	n, err := strconv.Atoi(k)
-	println("n=", n, err.Error())
+	s := strings.SplitN(k, ":", 2)[1]
+	n, err := strconv.Atoi(s)
 	if err != nil {
-		return nil, err
+		return nil, err // Causes HTTP 503
 	}
 	return &Item{n, v}, nil
 }

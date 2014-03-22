@@ -1,29 +1,35 @@
-# Copyright 2009-2013 The RestMQ Authors. All rights reserved.
+# Copyright 2013 restmq Authors.  All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
 PREFIX=/opt/restmq
 
-all: restmqd/restmqd
+all: server
 
 deps:
-	go get -u code.google.com/p/go.net/websocket
-	go get -u github.com/fiorix/go-redis/redis
-	go get -u github.com/fiorix/go-web/http
-	go get -u github.com/fiorix/go-web/remux
+	make -C src deps
 
-restmqd/restmqd:
-	(cd restmqd; go build)
+server:
+	make -C src
+	@cp src/restmq ./restmqd
 
 clean:
-	rm -f restmqd/restmqd
+	make -C src clean
+	@rm -f ./restmqd
 
-install: restmqd/restmqd
-	mkdir -p ${PREFIX}
-	install -o root -m 0755 restmqd/restmqd ${PREFIX}
-	install -o root -m 0640 restmqd.xml ${PREFIX}
-	mkdir -m 0750 -p ${PREFIX}/cert
-	install -o root -m 0755 cert/mkcert.sh ${PREFIX}/cert
+install: server
+	mkdir -m 750 -p ${PREFIX}
+	install -m 750 restmqd ${PREFIX}
+	install -m 640 restmq.conf ${PREFIX}
+	mkdir -m 750 -p ${PREFIX}/SSL
+	install -m 750 ssl/Makefile ${PREFIX}/SSL
+	mkdir -m 750 -p ${PREFIX}/assets
+	rsync -rupE assets ${PREFIX}
+	find ${PREFIX}/assets -type f -exec chmod 640 {} \;
+	find ${PREFIX}/assets -type d -exec chmod 750 {} \;
+	#chown -R www-data: ${PREFIX}
 
 uninstall:
 	rm -rf ${PREFIX}
+
+.PHONY: server

@@ -14,19 +14,13 @@ Download required packages:
 
 Build and run dev server:
 
-	make clean all; ./restmqd/restmqd
+	make clean all
+	./restmqd
 
 Install, uninstall:
 
 	sudo make install
 	sudo make uninstall
-
-## Devops
-
-`restmq` is the library, currently using Redis as the backend storage.
-`restmqd` is the http and https server that ships with the library.
-
-Lots of TODO in the source, examples and test cases.
 
 ## Testing
 
@@ -34,16 +28,17 @@ Use curl to test functionality.
 
 Add new item *bar* into the queue *foo*:
 
-	curl -v -d 'value=bar' http://localhost:8080/q/foo
+	curl -v -d 'item=hello, world' http://localhost:8080/q/foobar
 
 Get the next item from queue *foo*:
 
-	curl -v http://localhost:8080/q/foo
+	curl -v http://localhost:8080/q/foobar
 
 Use comet (SSE) to subscribe to queue *foo* and get new items as they're
 created, in real time:
 
-	curl -v http://localhost:8080/c/foo
+	(NOT WORKING YET)
+	curl -v http://localhost:8080/c/foobar
 
 
 ## Stuff we do
