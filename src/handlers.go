@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+
+	"github.com/gorilla/context"
 )
 
 var queueRe = regexp.MustCompile("^([a-zA-Z0-9]+)$")
@@ -33,6 +35,7 @@ func QueueHandler(w http.ResponseWriter, r *http.Request) {
 		item, err := RestMQ.Get(qn, soft)
 		if err != nil {
 			http.Error(w, http.StatusText(503), 503)
+			context.Set(r, "info", err)
 			return
 		} else if item == nil {
 			http.Error(w, "Queue is empty", 404)
@@ -48,6 +51,7 @@ func QueueHandler(w http.ResponseWriter, r *http.Request) {
 		item, err := RestMQ.Add(qn, v)
 		if err != nil {
 			http.Error(w, http.StatusText(503), 503)
+			context.Set(r, "info", err)
 			return
 		}
 		item.Write(w)

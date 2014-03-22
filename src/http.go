@@ -5,6 +5,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -13,7 +14,7 @@ import (
 	"github.com/gorilla/context"
 )
 
-func RouteHTTP() {
+func routeHTTP() {
 	// Static file server.
 	http.Handle("/static/", http.FileServer(http.Dir(Config.DocumentRoot)))
 
@@ -24,7 +25,7 @@ func RouteHTTP() {
 	http.HandleFunc("/q/", QueueHandler)
 }
 
-func ListenHTTP() {
+func listenHTTP() {
 	s := http.Server{
 		Addr:    Config.HTTP.Addr,
 		Handler: httpxtra.Handler{Logger: httpLogger},
@@ -33,7 +34,7 @@ func ListenHTTP() {
 	log.Fatal(s.ListenAndServe())
 }
 
-func ListenHTTPS() {
+func listenHTTPS() {
 	s := http.Server{
 		Addr:    Config.HTTPS.Addr,
 		Handler: httpxtra.Handler{Logger: httpLogger},
@@ -70,7 +71,7 @@ func httpLogger(r *http.Request, created time.Time, status, bytes int) {
 	}
 
 	if tmp := context.Get(r, "info"); tmp != nil {
-		info = "(" + tmp.(string) + ")"
+		info = fmt.Sprintf("(%s)", tmp)
 	}
 
 	log.Printf("%s %d %s %q (%s) :: %d bytes in %s %s",

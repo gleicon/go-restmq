@@ -50,7 +50,7 @@ func main() {
 	TEXT = text.Must(text.ParseGlob(Config.TemplatesDir + "/*.txt"))
 
 	// Set up databases.
-	RestMQ = NewQueue(Config.DB.Redis...)
+	RestMQ = newQueue(Config.DB.Redis...)
 
 	// Set GOMAXPROCS and show server info.
 	var cpuinfo string
@@ -63,12 +63,12 @@ func main() {
 	log.Printf("%s v%s (%s)", APPNAME, VERSION, cpuinfo)
 
 	// Add routes, and run HTTP and HTTPS servers.
-	RouteHTTP()
+	routeHTTP()
 	if Config.HTTP.Addr != "" {
-		go ListenHTTP()
+		go listenHTTP()
 	}
 	if Config.HTTPS.Addr != "" {
-		go ListenHTTPS()
+		go listenHTTPS()
 	}
 	select {}
 }

@@ -17,7 +17,6 @@ package main
 import (
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/fiorix/go-redis/redis"
 )
@@ -28,32 +27,32 @@ type Queue struct {
 }
 
 type Item struct {
-	Count int    `json:"count"`
+	Id    int    `json:"id"`
 	Value string `json:"value"`
 }
 
 func (i *Item) Write(w http.ResponseWriter) error {
-	return WriteJSON(w, i)
+	return writeJSON(w, i)
 }
 
-// New creates, initializes and returns a new instance of RestMQ.
+// newQueue creates, initializes and returns a new instance of RestMQ.
 // RestMQ instances are safe for concurrent access.
-func NewQueue(addr ...string) *Queue {
+func newQueue(addr ...string) *Queue {
 	return &Queue{redis.New(addr...)}
 }
 
 // Add adds one item into the given queue, which is created on demand.
 func (mq *Queue) Add(queue, value string) (*Item, error) {
 	// TODO: Fix for cases when Redis disconnects in between the commands.
-	n, err := mq.rc.Incr(queueId(queue))
+	n, err := mq.rc.Incr(queueCount(queue))
 	if err != nil {
 		return nil, err
 	}
-	lkey := queue + ":" + strconv.Itoa(n)
-	if err = mq.rc.Set(lkey, value); err != nil {
+	ns := strconv.Itoa(n)
+	if err = mq.rc.Set(queue+":"+ns, value); err != nil {
 		return nil, err
 	}
-	if _, err = mq.rc.LPush(queueName(queue), lkey); err != nil {
+	if _, err = mq.rc.LPush(queueName(queue), ns); err != nil {
 		return nil, err
 	}
 	return &Item{n, value}, nil
@@ -68,28 +67,29 @@ func (mq *Queue) Add(queue, value string) (*Item, error) {
 // The "hard" get returns an item from the queue without incrementing its
 // reference counter. The item is permanently erased from the queue.
 func (mq *Queue) Get(queue string, soft bool) (*Item, error) {
-	var err error
-	qn := queueName(queue)
-	var k string
+	var (
+		err error
+		ns  string
+		qn  = queueName(queue)
+	)
 	if soft {
-		k, err = mq.rc.LIndex(qn, -1)
+		ns, err = mq.rc.LIndex(qn, -1)
 	} else {
-		k, err = mq.rc.RPop(qn)
+		ns, err = mq.rc.RPop(qn)
 	}
 	if err != nil {
 		return nil, err // Redis error
-	} else if k == "" {
+	} else if ns == "" {
 		return nil, nil // Empty queue
 	}
 	var v string
-	v, err = mq.rc.Get(k)
+	v, err = mq.rc.Get(queue + ":" + ns)
 	if err != nil {
 		return nil, err // Redis error
 	}
-	s := strings.SplitN(k, ":", 2)[1]
-	n, err := strconv.Atoi(s)
+	n, err := strconv.Atoi(ns)
 	if err != nil {
-		return nil, err // Causes HTTP 503
+		return nil, err // This causes HTTP 503
 	}
 	return &Item{n, v}, nil
 }
@@ -110,7 +110,7 @@ func (mq *Queue) Len(queue string) (int, error) {
 	return 0, nil
 }
 
-// All returns all from the given queue.
+// All returns all items in the given queue.
 func (mq *Queue) All(queue string) ([]string, error) {
 	return nil, nil
 }
@@ -144,9 +144,9 @@ func (mq *Queue) LastItems(queue string, n int) ([]string, error) {
 }
 
 func queueName(name string) string {
-	return "qn:" + name
+	return "q:" + name
 }
 
-func queueId(name string) string {
-	return "id:" + name
+func queueCount(name string) string {
+	return "n:" + name
 }
