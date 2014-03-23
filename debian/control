@@ -1,0 +1,16 @@
+Source: restmq
+Section: utils
+Priority: extra
+Maintainer: Alexandre Fiori <fiorix@gmail.com>
+Build-Depends: debhelper (>= 8.0.0)
+Standards-Version: 3.9.2
+Homepage: http://restmq.com
+Vcs-Git: git@github.com:gleicon/go-restmq.git
+Vcs-Browser: https://github.com/gleicon/go-restmq
+
+Package: restmq
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, redis-server
+Description: RestMQ is a message queue server
+ RestMQ is a message queue which uses HTTP as transport, JSON to
+ format a minimalist protocol and is organized as REST resources.

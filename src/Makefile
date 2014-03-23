@@ -1,11 +1,10 @@
-# Copyright 2013 restmq Authors.  All rights reserved.
+# Copyright 2010-2014 restmq authors.  All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-NAME=restmqd
-VERSION=2.0.1
+include Makefile.defs
 
-all: deps server
+all: server
 
 deps:
 	go get -v

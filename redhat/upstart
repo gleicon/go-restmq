@@ -4,6 +4,6 @@ start on runlevel [2345]
 stop on runlevel [!2345]
 
 limit nofile 10240 10240
-setuid restmq
-setgid restmq
+#setuid restmq
+#setgid restmq
 exec /opt/restmq/restmqd -c /opt/restmq/restmq.conf -logfile /var/log/restmq/restmq.log
