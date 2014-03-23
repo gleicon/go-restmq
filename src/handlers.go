@@ -5,8 +5,8 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"regexp"
 
@@ -71,17 +71,27 @@ func CometHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		w.Header().Set("Allow", "GET")
 		http.Error(w, http.StatusText(405), 405)
+		return
 	}
-	ic, ec := RestMQ.Join(qn)
+	f, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, http.StatusText(503), 503)
+		context.Set(r, "info", "Chunked responses not supported")
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
+	f.Flush()
+	c, e := RestMQ.Join(qn, 30)
+	j := json.NewEncoder(w)
 L:
 	for {
 		select {
-		case item := <-ic:
-			item.Write(w)
-		case err := <-ec:
-			log.Println(err)
+		case item := <-c:
+			j.Encode(item)
+			f.Flush()
+		case err := <-e:
+			context.Set(r, "info", err)
 			break L
 		case <-w.(http.CloseNotifier).CloseNotify():
 			break L

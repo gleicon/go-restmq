@@ -121,21 +121,21 @@ func (mq *Queue) Add(queue, value string) (*Item, error) {
 // reference counter. The item is permanently erased from the queue.
 func (mq *Queue) Get(queue string, soft bool) (*Item, error) {
 	var (
-		err      error
-		ns       string
-		qn       = queueName(queue)
-		refcount = 0
+		err    error
+		ns, rs string
+		rc     int
+		qn     = queueName(queue)
 	)
 	if soft {
 		ns, err = mq.rc.LIndex(qn, -1)
 		if err != nil {
 			return nil, err // This causes HTTP 503
 		}
-		refcounts, err := mq.rc.HGet(queueMetadata(queue), QUEUEREFCOUNTER)
+		rs, err = mq.rc.HGet(queueMetadata(queue), QUEUEREFCOUNTER)
 		if err != nil {
 			return nil, err // This causes HTTP 503
 		}
-		refcount, err = strconv.Atoi(refcounts)
+		rc, err = strconv.Atoi(rs)
 		if err != nil {
 			return nil, err // This causes HTTP 503
 		}
@@ -149,9 +149,7 @@ func (mq *Queue) Get(queue string, soft bool) (*Item, error) {
 			return nil, err // This causes HTTP 503
 		}
 	}
-	if err != nil {
-		return nil, err // Redis error
-	} else if ns == "" {
+	if ns == "" {
 		return nil, nil // Empty queue
 	}
 	var v string
@@ -163,42 +161,44 @@ func (mq *Queue) Get(queue string, soft bool) (*Item, error) {
 	if err != nil {
 		return nil, err // This causes HTTP 503
 	}
-	return &Item{n, refcount, v}, nil
+	return &Item{n, rc, v}, nil
 }
 
-// Join returns a channel for a given queue, which pops Item items as
-// they are added to the queue.
-// Join behaves like an infinite Get, pushing items through the channel.
-func (mq *Queue) Join(queue string) (<-chan *Item, <-chan error) {
+// Join hooks into the queue and immediatelly dispatch new items to the
+// http client in an infinite loop, until the client disconnects or the
+// operation times out.
+func (mq *Queue) Join(queue string, timeout int) (<-chan *Item, <-chan error) {
 	c := make(chan *Item)
 	e := make(chan error)
 	go func() {
 		for {
-			log.Println("calling brpop on", queue)
-			_, ns, err := mq.rc.BRPop(5, queueName(queue))
+			_, ns, err := mq.rc.BRPop(timeout, queueName(queue))
 			if err != nil {
 				e <- err
-				close(e)
-				close(c)
-				return
-			}
-			var v string
-			log.Println("calling get on", queue)
-			v, err = mq.rc.Get(queue + ":" + ns)
-			if err != nil {
-				e <- err
-				close(e)
-				close(c)
 				return
 			}
 			n, err := strconv.Atoi(ns)
 			if err != nil {
 				e <- err
-				close(e)
-				close(c)
 				return
 			}
-			c <- &Item{n, v}
+			var v string
+			v, err = mq.rc.Get(queue + ":" + ns)
+			if err != nil {
+				e <- err
+				return
+			}
+			rs, err := mq.rc.HGet(queueMetadata(queue), QUEUEREFCOUNTER)
+			if err != nil {
+				e <- err
+				return
+			}
+			rc, err := strconv.Atoi(rs)
+			if err != nil {
+				e <- err
+				return
+			}
+			c <- &Item{n, rc, v}
 		}
 	}()
 	return c, e
