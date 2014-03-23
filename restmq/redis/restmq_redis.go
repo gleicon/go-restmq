@@ -194,10 +194,13 @@ func (mq *Queue) Join(queue string, timeout int) (<-chan *restmq.Item, <-chan er
 				e <- err
 				return
 			}
-			rc, err := strconv.Atoi(rs)
-			if err != nil {
-				e <- err
-				return
+			var rc int
+			if rs != "" {
+				rc, err = strconv.Atoi(rs)
+				if err != nil {
+					e <- err
+					return
+				}
 			}
 			c <- &restmq.Item{n, rc, v}
 		}
