@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"time"
 
+	"code.google.com/p/go.net/websocket"
 	"github.com/fiorix/go-web/httpxtra"
 	"github.com/gorilla/context"
 )
@@ -24,6 +25,7 @@ func routeHTTP() {
 	// Queue handlers
 	http.HandleFunc("/q/", QueueHandler)
 	http.HandleFunc("/c/", CometHandler)
+	http.Handle("/ws/", websocket.Handler(WebsocketHandler))
 }
 
 func listenHTTP() {

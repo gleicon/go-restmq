@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"regexp"
 
+	"code.google.com/p/go.net/websocket"
 	"github.com/gorilla/context"
 )
 
@@ -94,6 +95,28 @@ L:
 			context.Set(r, "info", err)
 			break L
 		case <-w.(http.CloseNotifier).CloseNotify():
+			break L
+		}
+	}
+}
+
+func WebsocketHandler(ws *websocket.Conn) {
+	r := ws.Request()
+	qn := r.URL.Path[len("/c/"):]
+	if !queueRe.MatchString(qn) {
+		ws.Close()
+	}
+	c, e := RestMQ.Join(qn, 600)
+	j := json.NewEncoder(ws)
+L:
+	for {
+		select {
+		case item := <-c:
+			if j.Encode(item) != nil {
+				break L
+			}
+		case err := <-e:
+			context.Set(r, "info", err)
 			break L
 		}
 	}
