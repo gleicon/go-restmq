@@ -69,36 +69,38 @@ func (i *Item) JSON() string {
 // newQueue creates, initializes and returns a new instance of RestMQ.
 // RestMQ instances are safe for concurrent access.
 func newQueue(addr ...string) *Queue {
-	q := Queue{redis.New(addr...), []string{}}
-	go func() {
-		for {
-			log.Print("Refreshing index cache")
-			qi, err := q.rc.SMembers(QUEUEINDEX)
-			if err != nil {
-				log.Print("Error fetching queue index" + err.Error())
-			}
-			q.qi = qi
-			time.Sleep(60000 * time.Millisecond)
+	mq := &Queue{redis.New(addr...), []string{}}
+	go mq.runIndex(time.Duration(30) * time.Second)
+	return mq
+}
+
+func (mq *Queue) runIndex(interval time.Duration) {
+	var (
+		err error
+		qi  []string
+	)
+	for {
+		if qi, err = mq.rc.SMembers(QUEUEINDEX); err != nil {
+			log.Print("Error fetching queue index", err)
+		} else {
+			log.Print("Queue index cache updated")
+			mq.qi = qi
 		}
-	}()
-	return &q
+		time.Sleep(interval)
+	}
 }
 
 // if queue is not in the index, add it.
 // any race condition between refreshing the set + adding it can be tuned
 // by the goroutine sleep
 // I promise it wont be too expensive.
-func (mq *Queue) checkAndAddToIndex(queue string) {
-	found := false
-	for _, i := range mq.qi {
-		if i == queue {
-			found = true
+func (mq *Queue) updateIndex(queue string) {
+	for _, name := range mq.qi {
+		if name == queue {
+			return // queue already indexed, bye
 		}
 	}
-
-	if !found {
-		mq.rc.SAdd(QUEUEINDEX, queue)
-	}
+	mq.rc.SAdd(QUEUEINDEX, queue)
 }
 
 // Add adds one item into the given queue, which is created on demand.
@@ -106,7 +108,7 @@ func (mq *Queue) Add(queue, value string) (*Item, error) {
 	// TODO: Fix for cases when Redis disconnects in between the commands.
 
 	// TODO: think better about when/how to include a queue in the index
-	mq.checkAndAddToIndex(queue)
+	mq.updateIndex(queue)
 	n, err := mq.rc.HIncrBy(queueMetadata(queue), QUEUEUUID, 1)
 	if err != nil {
 		return nil, err
@@ -154,7 +156,7 @@ func (mq *Queue) Get(queue string, soft bool) (*Item, error) {
 		if err != nil {
 			return nil, err // This causes HTTP 503
 		}
-		err := mq.rc.HSet(queueMetadata(queue), QUEUEREFCOUNTER, "0")
+		err = mq.rc.HSet(queueMetadata(queue), QUEUEREFCOUNTER, "0")
 		if err != nil {
 			return nil, err // This causes HTTP 503
 		}
@@ -167,8 +169,8 @@ func (mq *Queue) Get(queue string, soft bool) (*Item, error) {
 	if err != nil {
 		return nil, err // Redis error
 	}
-	n, err := strconv.Atoi(ns)
-	if err != nil {
+	var n int
+	if n, err = strconv.Atoi(ns); err != nil {
 		return nil, err // This causes HTTP 503
 	}
 	return &Item{n, rc, v}, nil
