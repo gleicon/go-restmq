@@ -116,21 +116,17 @@ func (mq *Queue) Add(queue, value string) (*restmq.Item, error) {
 // reference counter, and the item is permanently erased from the queue.
 func (mq *Queue) Get(queue string, soft bool) (*restmq.Item, error) {
 	var (
-		err    error
-		ns, rs string
-		rc     int
-		qn     = queueName(queue)
+		err error
+		ns  string
+		r   int
+		qn  = queueName(queue)
 	)
 	if soft {
 		ns, err = mq.rc.LIndex(qn, -1)
 		if err != nil {
 			return nil, err // This causes HTTP 503
 		}
-		rs, err = mq.rc.HGet(queueMetadata(queue), QueueRefCount)
-		if err != nil {
-			return nil, err // This causes HTTP 503
-		}
-		rc, err = strconv.Atoi(rs)
+		r, err = mq.rc.HIncrBy(queueMetadata(queue), QueueRefCount, 1)
 		if err != nil {
 			return nil, err // This causes HTTP 503
 		}
@@ -159,7 +155,7 @@ func (mq *Queue) Get(queue string, soft bool) (*restmq.Item, error) {
 	if n, err = strconv.Atoi(ns); err != nil {
 		return nil, err // This causes HTTP 503
 	}
-	return &restmq.Item{n, rc, v}, nil
+	return &restmq.Item{n, r, v}, nil
 }
 
 // Join hooks into the queue in a goroutine, and returns channels which
@@ -168,10 +164,13 @@ func (mq *Queue) Get(queue string, soft bool) (*restmq.Item, error) {
 // If multiple clients call Join for the same queue, the first client to be
 // served is the one that was waiting for more time (the first that
 // called Join for the queue).
-func (mq *Queue) Join(queue string, timeout int) (<-chan *restmq.Item, <-chan error) {
+func (mq *Queue) Join(queue string, timeout int, soft bool) (<-chan *restmq.Item, <-chan error) {
 	c := make(chan *restmq.Item)
 	e := make(chan error)
 	go func() {
+		var (
+			rc int
+		)
 		for {
 			_, ns, err := mq.rc.BRPop(timeout, queueName(queue))
 			if err != nil {
@@ -189,14 +188,26 @@ func (mq *Queue) Join(queue string, timeout int) (<-chan *restmq.Item, <-chan er
 				e <- err
 				return
 			}
-			rs, err := mq.rc.HGet(queueMetadata(queue), QueueRefCount)
-			if err != nil {
-				e <- err
-				return
-			}
-			var rc int
-			if rs != "" {
-				rc, err = strconv.Atoi(rs)
+			if soft {
+				rc, err = mq.rc.HIncrBy(queueMetadata(queue), QueueRefCount, 1)
+				if err != nil {
+					e <- err
+					return
+				}
+			} else {
+				rs, err := mq.rc.HGet(queueMetadata(queue), QueueRefCount)
+				if err != nil {
+					e <- err
+					return
+				}
+				if rs != "" {
+					rc, err = strconv.Atoi(rs)
+					if err != nil {
+						e <- err
+						return
+					}
+				}
+				err = mq.rc.HSet(queueMetadata(queue), QueueRefCount, "0")
 				if err != nil {
 					e <- err
 					return

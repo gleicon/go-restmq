@@ -22,7 +22,7 @@ type Queue interface {
 	// distributed as per the queue's policy.
 	//
 	// See the queue policy documentation for details.
-	Join(queue string, timeout int) (<-chan *Item, <-chan error)
+	Join(queue string, timeout int, soft bool) (<-chan *Item, <-chan error)
 
 	// Policy returns the current queue policy. If the queue does not
 	// exist, it is created and the default policy is used.

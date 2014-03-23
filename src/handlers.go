@@ -180,7 +180,7 @@ func CometHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 	f.Flush()
-	c, e := RestMQ.Join(qn, 30)
+	c, e := RestMQ.Join(qn, 30, false)
 	j := json.NewEncoder(w)
 L:
 	for {
@@ -214,7 +214,7 @@ func SSEHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer conn.Close()
-	c, e := RestMQ.Join(qn, 30)
+	c, e := RestMQ.Join(qn, 30, false)
 L:
 	for {
 		select {
@@ -235,7 +235,7 @@ func WebsocketHandler(ws *websocket.Conn) {
 	if !queueRe.MatchString(qn) {
 		ws.Close()
 	}
-	c, e := RestMQ.Join(qn, 600)
+	c, e := RestMQ.Join(qn, 600, false)
 	j := json.NewEncoder(ws)
 L:
 	for {
