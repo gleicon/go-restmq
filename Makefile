@@ -2,7 +2,12 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-PREFIX=$(DESTDIR)/opt/restmq
+TARGET=$(DESTDIR)/opt/restmq
+include src/Makefile.defs
+
+SRPM_PKG=restmq-$(VERSION)
+SRPM_TGZ=$(SRPM_PKG).tar.gz
+
 
 all: server
 
@@ -13,7 +18,7 @@ forcedeps:
 	make -C src forcedeps
 
 server:
-	make -C src
+	VERSION=$(VERSION) make -C src
 	@cp src/restmqd .
 
 clean:
@@ -21,24 +26,34 @@ clean:
 	@rm -f ./restmqd
 
 install: server
-	install -m 750 -d ${PREFIX}
-	install -m 750 restmqd ${PREFIX}
-	install -m 640 restmq.conf ${PREFIX}
-	install -m 750 -d ${PREFIX}/ssl
-	install -m 640 ssl/Makefile ${PREFIX}/ssl
-	install -m 750 -d ${PREFIX}/assets
-	rsync -rupE assets ${PREFIX}
-	find ${PREFIX}/assets -type f -exec chmod 640 {} \;
-	find ${PREFIX}/assets -type d -exec chmod 750 {} \;
-	#chown -R www-data: ${PREFIX}
+	install -m 750 -d $(TARGET)
+	install -m 750 restmqd $(TARGET)
+	install -m 640 restmq.conf $(TARGET)
+	install -m 750 -d $(TARGET)/ssl
+	install -m 640 ssl/Makefile $(TARGET)/ssl
+	install -m 750 -d $(TARGET)/assets
+	rsync -rupE assets $(TARGET)
+	find $(TARGET)/assets -type f -exec chmod 640 {} \;
+	find $(TARGET)/assets -type d -exec chmod 750 {} \;
+	#chown -R www-data: $(TARGET)
 
 uninstall:
-	rm -rf ${PREFIX}
+	rm -rf $(TARGET)
 
 dpkg-deps:
 	apt-get install build-essential debhelper devscripts dh-make fakeroot lintian
 
 make dpkg:
 	dpkg-buildpackage -b -uc -rfakeroot
+
+rpm-deps:
+	yum install gcc make git rpm-build redhat-rpm-config
+
+rpm:
+	mkdir -p $(HOME)/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+	echo '%_topdir $(HOME)/rpmbuild' > ~/.rpmmacros
+	git archive --format tar --prefix=$(SRPM_PKG)/ HEAD . | gzip > $(HOME)/rpmbuild/SOURCES/$(SRPM_TGZ)
+	cp rpm/restmq.spec $(HOME)/rpmbuild/SPECS
+	rpmbuild -ba $(HOME)/rpmbuild/SPECS/restmq.spec
 
 .PHONY: server
