@@ -6,11 +6,11 @@ NAME=restmq
 
 all: deps server
 
-forcedeps:
-	go get -v -u
-
 deps:
 	go get -v
+
+forcedeps:
+	go get -v -u
 
 server:
 	go build -v -o restmq
