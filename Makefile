@@ -14,7 +14,7 @@ forcedeps:
 
 server:
 	make -C src
-	@cp src/restmq ./restmqd
+	@cp src/restmqd .
 
 clean:
 	make -C src clean
