@@ -21,12 +21,12 @@ clean:
 	@rm -f ./restmqd
 
 install: server
-	mkdir -m 750 -p ${PREFIX}
+	install -d -m 750 ${PREFIX}
 	install -m 750 restmqd ${PREFIX}
 	install -m 640 restmq.conf ${PREFIX}
-	mkdir -m 750 -p ${PREFIX}/SSL
+	install -d -m 750 ${PREFIX}/ssl
 	install -m 750 ssl/Makefile ${PREFIX}/ssl
-	mkdir -m 750 -p ${PREFIX}/assets
+	install -d -m 750 ${PREFIX}/assets
 	rsync -rupE assets ${PREFIX}
 	find ${PREFIX}/assets -type f -exec chmod 640 {} \;
 	find ${PREFIX}/assets -type d -exec chmod 750 {} \;
