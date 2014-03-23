@@ -17,7 +17,15 @@ import (
 )
 
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "hello, world\r\n")
+	qs, err := RestMQ.ListQueues()
+	if err != nil {
+		http.Error(w, http.StatusText(503), 503)
+		context.Set(r, "info", err)
+		return
+	}
+	for _, e := range qs {
+		fmt.Fprintf(w, e)
+	}
 }
 
 func QueueHandler(w http.ResponseWriter, r *http.Request) {

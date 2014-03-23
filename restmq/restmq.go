@@ -36,7 +36,10 @@ type Queue interface {
 	Pause() error
 
 	// Start queue streaming. All queues are started by default
-	Start()
+	Start() error
+
+	// List all queues
+	ListQueues() ([]string, error)
 }
 
 var (

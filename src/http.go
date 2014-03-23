@@ -18,6 +18,8 @@ import (
 func routeHTTP() {
 	// Static file server.
 	http.Handle("/static/", http.FileServer(http.Dir(Config.DocumentRoot)))
+	http.Handle("/dashboard/", http.StripPrefix("/dashboard/", http.FileServer(http.Dir(Config.DocumentRoot+"/dashboard/"))))
+	log.Println(http.Dir(Config.DocumentRoot + "/dashboard/"))
 
 	// Public handlers: add your own
 	http.HandleFunc("/", IndexHandler)
@@ -29,7 +31,6 @@ func routeHTTP() {
 	http.Handle("/ws/", websocket.Handler(WebsocketHandler))
 
 	// Management dashboard and control APIs
-	http.Handle("/dashboard", http.FileServer(http.Dir(Config.DocumentRoot+"/dashboard/")))
 	http.HandleFunc("/api/policy/", PolicyHandler)
 	http.HandleFunc("/api/pause/", PauseHandler)
 	http.HandleFunc("/api/start/", StartHandler)

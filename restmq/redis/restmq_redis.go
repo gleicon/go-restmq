@@ -244,17 +244,16 @@ func (mq *Queue) SetPolicy(queue string, policy string) error {
 	return mq.rc.HSet(queueMetadata(queue), QueuePolicy, policy)
 }
 
-// CountElements does something different than Len.
-// TODO: Gleicon
-// to be obsoleted, we need transactions/track all garbage for each queue item
-func (mq *Queue) CountElements(queue string) (int, error) {
-	return 0, nil
+func (mq *Queue) ListQueues() ([]string, error) {
+	return mq.rc.SMembers(QueueIndex)
 }
 
-// LastItems returns the last n items in the queue.
-// TO BE DEPRECATED, QUEUE IS NOT A DATABASE
-func (mq *Queue) LastItems(queue string, n int) ([]string, error) {
-	return nil, nil
+func (mq *Queue) Pause() error {
+	return nil
+}
+
+func (mq *Queue) Start() error {
+	return nil
 }
 
 func queueName(name string) string {
