@@ -7,3 +7,5 @@ cert/*.csr
 restmqd/restmqd
 *.test
 dump.rdb
+restmqd
+src/restmq
