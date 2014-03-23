@@ -11,6 +11,7 @@ import (
 	"regexp"
 
 	"code.google.com/p/go.net/websocket"
+	"github.com/fiorix/go-web/sse"
 	"github.com/gorilla/context"
 )
 
@@ -100,9 +101,41 @@ L:
 	}
 }
 
+func SSEHandler(w http.ResponseWriter, r *http.Request) {
+	qn := r.URL.Path[len("/sse/"):]
+	if !queueRe.MatchString(qn) {
+		http.Error(w, "Invalid queue name", 400)
+		return
+	}
+	if r.Method != "GET" {
+		w.Header().Set("Allow", "GET")
+		http.Error(w, http.StatusText(405), 405)
+		return
+	}
+	conn, rw, err := sse.ServeEvents(w)
+	if err != nil {
+		conn.Close()
+		return
+	}
+	defer conn.Close()
+	c, e := RestMQ.Join(qn, 30)
+L:
+	for {
+		select {
+		case item := <-c:
+			if sse.SendEvent(rw, &sse.MessageEvent{Data: item.JSON()}) != nil {
+				break L
+			}
+		case err := <-e:
+			context.Set(r, "info", err)
+			break L
+		}
+	}
+}
+
 func WebsocketHandler(ws *websocket.Conn) {
 	r := ws.Request()
-	qn := r.URL.Path[len("/c/"):]
+	qn := r.URL.Path[len("/ws/"):]
 	if !queueRe.MatchString(qn) {
 		ws.Close()
 	}

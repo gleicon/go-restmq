@@ -25,6 +25,7 @@ func routeHTTP() {
 	// Queue handlers
 	http.HandleFunc("/q/", QueueHandler)
 	http.HandleFunc("/c/", CometHandler)
+	http.HandleFunc("/sse/", SSEHandler)
 	http.Handle("/ws/", websocket.Handler(WebsocketHandler))
 }
 

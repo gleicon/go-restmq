@@ -24,6 +24,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -54,6 +55,15 @@ type Item struct {
 
 func (i *Item) Write(w http.ResponseWriter) error {
 	return writeJSON(w, i)
+}
+
+func (i *Item) JSON() string {
+	if b, err := json.Marshal(i); err != nil {
+		log.Fatal("json.Marshal failed:", err)
+	} else {
+		return string(b)
+	}
+	return ""
 }
 
 // newQueue creates, initializes and returns a new instance of RestMQ.
