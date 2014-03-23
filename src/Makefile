@@ -6,6 +6,9 @@ NAME=restmq
 
 all: deps server
 
+forcedeps:
+	go get -v -u
+
 deps:
 	go get -v
 

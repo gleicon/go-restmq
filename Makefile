@@ -9,6 +9,9 @@ all: server
 deps:
 	make -C src deps
 
+forcedeps:
+	make -C src forcedeps
+
 server:
 	make -C src
 	@cp src/restmq ./restmqd
