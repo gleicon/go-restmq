@@ -27,6 +27,11 @@ Build Debian package:
 	sudo make dpkg-deps
 	make dpkg
 
+Build RPM package:
+
+	sudo make rpm-deps
+	make rpm
+
 ## Testing
 
 Use curl to test functionality.
