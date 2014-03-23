@@ -5,7 +5,7 @@
 NAME=restmqd
 VERSION=2.0.1
 
-all: deps server
+all: server
 
 deps:
 	go get -v
