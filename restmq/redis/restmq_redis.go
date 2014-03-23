@@ -24,7 +24,6 @@
 package restmq_redis
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -240,7 +239,7 @@ func (mq *Queue) SetPolicy(queue string, policy string) error {
 	case "fifo":
 	case "broadcast":
 	default:
-		return errors.New("Invalid queue policy")
+		return restmq.InvalidQueuePolicy
 	}
 	return mq.rc.HSet(queueMetadata(queue), QueuePolicy, policy)
 }

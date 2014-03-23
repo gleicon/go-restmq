@@ -23,6 +23,7 @@ func routeHTTP() {
 	http.HandleFunc("/", IndexHandler)
 
 	// Queue handlers
+	http.HandleFunc("/p/", PolicyHandler)
 	http.HandleFunc("/q/", QueueHandler)
 	http.HandleFunc("/c/", CometHandler)
 	http.HandleFunc("/sse/", SSEHandler)

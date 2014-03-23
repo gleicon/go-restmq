@@ -5,12 +5,14 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
+	"regexp"
 	"strings"
 )
+
+var queueRe = regexp.MustCompile("^([a-zA-Z0-9]+)$")
 
 // remoteIP returns the remote IP without the port number.
 func remoteIP(r *http.Request) string {
@@ -59,18 +61,4 @@ func serverURL(r *http.Request, preferSSL bool) string {
 		}
 	}
 	return fmt.Sprintf("%s://%s", proto, host)
-}
-
-// writeJSON encodes `d` as JSON and writes it to the http connection.
-func writeJSON(w http.ResponseWriter, d interface{}) error {
-	w.Header().Set("Content-Type", "application/json")
-	enc := json.NewEncoder(w)
-	return enc.Encode(d)
-}
-
-// readJSON reads the HTTP request body and parses it as JSON.
-func readJSON(r *http.Request, v interface{}) error {
-	// TODO: check mime type first?
-	dec := json.NewDecoder(r.Body)
-	return dec.Decode(v)
 }

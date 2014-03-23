@@ -7,6 +7,8 @@
 
 package restmq
 
+import "errors"
+
 type Queue interface {
 	// Add new item into the queue.
 	Add(queue, value string) (*Item, error)
@@ -30,3 +32,7 @@ type Queue interface {
 	// is created and the policy is set.
 	SetPolicy(queue, policy string) error
 }
+
+var (
+	InvalidQueuePolicy = errors.New("Invalid queue policy")
+)

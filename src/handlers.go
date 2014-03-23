@@ -8,17 +8,49 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"regexp"
 
 	"code.google.com/p/go.net/websocket"
 	"github.com/fiorix/go-web/sse"
 	"github.com/gorilla/context"
-)
 
-var queueRe = regexp.MustCompile("^([a-zA-Z0-9]+)$")
+	"github.com/gleicon/go-restmq/restmq"
+)
 
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "hello, world\r\n")
+}
+
+func PolicyHandler(w http.ResponseWriter, r *http.Request) {
+	qn := r.URL.Path[len("/p/"):]
+	if !queueRe.MatchString(qn) {
+		http.Error(w, "Invalid queue name", 400)
+		return
+	}
+	switch r.Method {
+	case "GET":
+		policy, err := RestMQ.Policy(qn)
+		if err != nil {
+			http.Error(w, http.StatusText(503), 503)
+			context.Set(r, "info", err)
+			return
+		}
+		fmt.Fprintf(w, "%s\r\n", policy)
+	case "POST":
+		err := RestMQ.SetPolicy(qn, r.FormValue("set"))
+		if err != nil {
+			if err == restmq.InvalidQueuePolicy {
+				http.Error(w, err.Error(), 400)
+				return
+			}
+			http.Error(w, http.StatusText(503), 503)
+			context.Set(r, "info", err)
+			return
+		}
+		fmt.Fprintf(w, "OK\r\n")
+	default:
+		w.Header().Set("Allow", "GET, POST")
+		http.Error(w, http.StatusText(405), 405)
+	}
 }
 
 func QueueHandler(w http.ResponseWriter, r *http.Request) {
