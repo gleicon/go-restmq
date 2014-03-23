@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style type="text/css">
+    body {
+      margin: 50px;
+      padding: 0px;
+      font-family: sans-serif;
+      text-align: center;
+    }
+    #item {
+      width: 650px;
+      margin: 0px auto;
+      padding: 50px;
+      text-align: left;
+      font-family: courier;
+      border: solid 1px white;
+    }
+    small {
+      color: #ccc;
+      font-size: .5em;
+    }
+  </style>
+  <script>
+    var queryDict = {}
+    location.search.substr(1).split("&").forEach(function(item) {queryDict[item.split("=")[0]] = item.split("=")[1]})
+    var source = new EventSource('/sse/' + queryDict.q);
+    source.onmessage = function(ev) {
+      document.getElementById("info").innerHTML = "RestMQ: "+queryDict.q;
+      document.getElementById("item").innerHTML = ev.data;
+    };
+  </script>
+</head>
+<body>
+  <p id="info">RestMQ</p>
+  <pre id="item"></pre>
+</body>
+</html>
