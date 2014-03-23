@@ -22,6 +22,11 @@ Install, uninstall:
 	sudo make install
 	sudo make uninstall
 
+Build Debian package:
+
+	sudo make dpkg-deps
+	make dpkg
+
 ## Testing
 
 Use curl to test functionality.
