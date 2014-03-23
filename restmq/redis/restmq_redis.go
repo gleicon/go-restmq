@@ -152,6 +152,9 @@ func (mq *Queue) Get(queue string, soft bool) (*restmq.Item, error) {
 	if err != nil {
 		return nil, err // Redis error
 	}
+	if !soft {
+		mq.rc.Del(queue + ":" + ns)
+	}
 	var n int
 	if n, err = strconv.Atoi(ns); err != nil {
 		return nil, err // This causes HTTP 503
