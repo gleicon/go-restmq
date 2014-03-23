@@ -16,7 +16,7 @@ type ConfigData struct {
 	DocumentRoot string `toml:"document_root"`
 
 	DB struct {
-		Redis []string `toml:"redis"`
+		Redis string `toml:"redis"`
 	} `toml:"db"`
 
 	HTTP struct {

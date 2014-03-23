@@ -44,7 +44,7 @@ func QueueHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Queue is empty", 404)
 			return
 		}
-		item.Write(w)
+		item.WriteJSON(w)
 	case "POST":
 		v := r.FormValue("value")
 		if v == "" {
@@ -57,7 +57,7 @@ func QueueHandler(w http.ResponseWriter, r *http.Request) {
 			context.Set(r, "info", err)
 			return
 		}
-		item.Write(w)
+		item.WriteJSON(w)
 	default:
 		w.Header().Set("Allow", "GET, POST")
 		http.Error(w, http.StatusText(405), 405)

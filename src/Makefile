@@ -2,7 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-NAME=restmq
+NAME=restmqd
+VERSION=2.0.1
 
 all: deps server
 
@@ -13,9 +14,9 @@ forcedeps:
 	go get -v -u
 
 server:
-	go build -v -o restmq
+	go build -v -o $(NAME) -ldflags "-X main.VERSION $(VERSION)"
 
 clean:
-	rm -f restmq
+	rm -f $(NAME)
 
 .PHONY: server

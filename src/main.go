@@ -13,14 +13,14 @@ import (
 
 	html "html/template"
 	text "text/template"
-)
 
-const (
-	VERSION = "2.0"
-	APPNAME = "restmq"
+	"github.com/gleicon/go-restmq/restmq"
+	"github.com/gleicon/go-restmq/restmq/redis"
 )
 
 var (
+	VERSION = "tip"
+
 	Config *ConfigData
 
 	// Templates
@@ -28,7 +28,7 @@ var (
 	TEXT *text.Template
 
 	// DBs
-	RestMQ *Queue
+	RestMQ restmq.Queue
 )
 
 func main() {
@@ -50,7 +50,7 @@ func main() {
 	TEXT = text.Must(text.ParseGlob(Config.TemplatesDir + "/*.txt"))
 
 	// Set up databases.
-	RestMQ = newQueue(Config.DB.Redis...)
+	RestMQ = restmq_redis.New(Config.DB.Redis)
 
 	// Set GOMAXPROCS and show server info.
 	var cpuinfo string
@@ -60,7 +60,7 @@ func main() {
 	} else {
 		cpuinfo = "1 CPU"
 	}
-	log.Printf("%s v%s (%s)", APPNAME, VERSION, cpuinfo)
+	log.Printf("restmqd v%s (%s)", VERSION, cpuinfo)
 
 	// Add routes, and run HTTP and HTTPS servers.
 	routeHTTP()
