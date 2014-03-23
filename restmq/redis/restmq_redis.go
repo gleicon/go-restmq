@@ -29,7 +29,7 @@ import (
 	"strconv"
 	"time"
 
-	redis_cli "github.com/fiorix/go-redis/redis"
+	"github.com/fiorix/go-redis/redis"
 	"github.com/gleicon/go-restmq/restmq"
 )
 
@@ -45,14 +45,14 @@ const (
 
 // Queue is the RestMQ queue handler.
 type Queue struct {
-	rc *redis_cli.Client
+	rc *redis.Client
 	qi []string // queue index
 }
 
 // New creates, initializes and returns a new instance of RestMQ.
 // RestMQ instances are safe for concurrent access.
 func New(addr string) *Queue {
-	mq := &Queue{redis_cli.New(addr), []string{}}
+	mq := &Queue{redis.New(addr), []string{}}
 	go mq.runIndex(30 * time.Second)
 	return mq
 }
