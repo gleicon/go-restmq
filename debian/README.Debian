@@ -1,0 +1,7 @@
+restmq for Debian
+-----------------
+
+RestMQ and all of its assets (config file, dashboard, html and js) are
+currently installed in /opt/restmq, but this might change in the future.
+
+ -- Alexandre Fiori <fiorix@gmail.com>  Sun, 23 Mar 2014 15:36:06 +0000

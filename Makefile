@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-PREFIX=/opt/restmq
+PREFIX=$(DESTDIR)/opt/restmq
 
 all: server
 
@@ -34,5 +34,11 @@ install: server
 
 uninstall:
 	rm -rf ${PREFIX}
+
+dpkg-deps:
+	apt-get install build-essential debhelper devscripts dh-make fakeroot lintian
+
+make dpkg:
+	dpkg-buildpackage -b -uc -rfakeroot
 
 .PHONY: server
