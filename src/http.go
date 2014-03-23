@@ -23,11 +23,18 @@ func routeHTTP() {
 	http.HandleFunc("/", IndexHandler)
 
 	// Queue handlers
-	http.HandleFunc("/p/", PolicyHandler)
 	http.HandleFunc("/q/", QueueHandler)
 	http.HandleFunc("/c/", CometHandler)
 	http.HandleFunc("/sse/", SSEHandler)
 	http.Handle("/ws/", websocket.Handler(WebsocketHandler))
+
+	// Management dashboard and control APIs
+	http.Handle("/dashboard", http.FileServer(http.Dir(Config.DocumentRoot+"/dashboard/")))
+	http.HandleFunc("/api/policy/", PolicyHandler)
+	http.HandleFunc("/api/pause/", PauseHandler)
+	http.HandleFunc("/api/start/", StartHandler)
+	http.HandleFunc("/api/status/", StatusHandler)
+	http.HandleFunc("/api/serverstatus/", ServerStatusHandler)
 }
 
 func listenHTTP() {

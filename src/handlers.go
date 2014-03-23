@@ -20,39 +20,6 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "hello, world\r\n")
 }
 
-func PolicyHandler(w http.ResponseWriter, r *http.Request) {
-	qn := r.URL.Path[len("/p/"):]
-	if !queueRe.MatchString(qn) {
-		http.Error(w, "Invalid queue name", 400)
-		return
-	}
-	switch r.Method {
-	case "GET":
-		policy, err := RestMQ.Policy(qn)
-		if err != nil {
-			http.Error(w, http.StatusText(503), 503)
-			context.Set(r, "info", err)
-			return
-		}
-		fmt.Fprintf(w, "%s\r\n", policy)
-	case "POST":
-		err := RestMQ.SetPolicy(qn, r.FormValue("set"))
-		if err != nil {
-			if err == restmq.InvalidQueuePolicy {
-				http.Error(w, err.Error(), 400)
-				return
-			}
-			http.Error(w, http.StatusText(503), 503)
-			context.Set(r, "info", err)
-			return
-		}
-		fmt.Fprintf(w, "OK\r\n")
-	default:
-		w.Header().Set("Allow", "GET, POST")
-		http.Error(w, http.StatusText(405), 405)
-	}
-}
-
 func QueueHandler(w http.ResponseWriter, r *http.Request) {
 	qn := r.URL.Path[len("/q/"):]
 	if !queueRe.MatchString(qn) {
@@ -96,6 +63,95 @@ func QueueHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Management and queue control APIs
+
+// /api/policy/<queuename> - switch between broadcast and roundrobin delivery
+// for streaming methods
+func PolicyHandler(w http.ResponseWriter, r *http.Request) {
+	qn := r.URL.Path[len("/api/policy/"):]
+	if !queueRe.MatchString(qn) {
+		http.Error(w, "Invalid queue name", 400)
+		return
+	}
+	switch r.Method {
+	case "GET":
+		policy, err := RestMQ.Policy(qn)
+		if err != nil {
+			http.Error(w, http.StatusText(503), 503)
+			context.Set(r, "info", err)
+			return
+		}
+		fmt.Fprintf(w, "%s\r\n", policy)
+	case "POST":
+		err := RestMQ.SetPolicy(qn, r.FormValue("set"))
+		if err != nil {
+			if err == restmq.InvalidQueuePolicy {
+				http.Error(w, err.Error(), 400)
+				return
+			}
+			http.Error(w, http.StatusText(503), 503)
+			context.Set(r, "info", err)
+			return
+		}
+		fmt.Fprintf(w, "OK\r\n")
+	default:
+		w.Header().Set("Allow", "GET, POST")
+		http.Error(w, http.StatusText(405), 405)
+	}
+}
+
+// /api/pause/<queuename> - pause queue streaming and hold back messages
+func PauseHandler(w http.ResponseWriter, r *http.Request) {
+	qn := r.URL.Path[len("/api/pause/"):]
+	if !queueRe.MatchString(qn) {
+		http.Error(w, "Invalid queue name", 400)
+		return
+	}
+	if r.Method != "POST" {
+		w.Header().Set("Allow", "GET")
+		http.Error(w, http.StatusText(405), 405)
+		return
+	}
+}
+
+// /api/start/<queuename> - start queue streaming
+func StartHandler(w http.ResponseWriter, r *http.Request) {
+	qn := r.URL.Path[len("/api/start/"):]
+	if !queueRe.MatchString(qn) {
+		http.Error(w, "Invalid queue name", 400)
+		return
+	}
+	if r.Method != "POST" {
+		w.Header().Set("Allow", "GET")
+		http.Error(w, http.StatusText(405), 405)
+		return
+	}
+}
+
+// /api/status/<queuename> - status for a given queue
+func StatusHandler(w http.ResponseWriter, r *http.Request) {
+	qn := r.URL.Path[len("/api/status/"):]
+	if !queueRe.MatchString(qn) {
+		http.Error(w, "Invalid queue name", 400)
+		return
+	}
+	if r.Method != "GET" {
+		w.Header().Set("Allow", "GET")
+		http.Error(w, http.StatusText(405), 405)
+		return
+	}
+}
+
+// /api/serverstatus - server status
+func ServerStatusHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		w.Header().Set("Allow", "GET")
+		http.Error(w, http.StatusText(405), 405)
+		return
+	}
+}
+
+// Streamers
 func CometHandler(w http.ResponseWriter, r *http.Request) {
 	qn := r.URL.Path[len("/c/"):]
 	if !queueRe.MatchString(qn) {

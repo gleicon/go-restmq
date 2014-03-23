@@ -31,6 +31,12 @@ type Queue interface {
 	// SetPolicy sets the queue policy. If the queue does not exist, it
 	// is created and the policy is set.
 	SetPolicy(queue, policy string) error
+
+	// Pause queue streaming consumer
+	Pause() error
+
+	// Start queue streaming. All queues are started by default
+	Start()
 }
 
 var (
