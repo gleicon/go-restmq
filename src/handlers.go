@@ -44,9 +44,9 @@ func QueueHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		item.Write(w)
 	case "POST":
-		v := r.FormValue("item")
+		v := r.FormValue("value")
 		if v == "" {
-			http.Error(w, "Missing 'item' argument", 400)
+			http.Error(w, "Missing 'value=' argument", 400)
 			return
 		}
 		item, err := RestMQ.Add(qn, v)
