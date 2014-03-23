@@ -23,6 +23,7 @@ func routeHTTP() {
 
 	// Queue handlers
 	http.HandleFunc("/q/", QueueHandler)
+	http.HandleFunc("/c/", CometHandler)
 }
 
 func listenHTTP() {

@@ -15,6 +15,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
@@ -70,12 +71,11 @@ func (mq *Queue) Get(queue string, soft bool) (*Item, error) {
 	var (
 		err error
 		ns  string
-		qn  = queueName(queue)
 	)
 	if soft {
-		ns, err = mq.rc.LIndex(qn, -1)
+		ns, err = mq.rc.LIndex(queueName(queue), -1)
 	} else {
-		ns, err = mq.rc.RPop(qn)
+		ns, err = mq.rc.RPop(queueName(queue))
 	}
 	if err != nil {
 		return nil, err // Redis error
@@ -92,6 +92,44 @@ func (mq *Queue) Get(queue string, soft bool) (*Item, error) {
 		return nil, err // This causes HTTP 503
 	}
 	return &Item{n, v}, nil
+}
+
+// Join returns a channel for a given queue, which pops Item items as
+// they are added to the queue.
+// Join behaves like an infinite Get, pushing items through the channel.
+func (mq *Queue) Join(queue string) (<-chan *Item, <-chan error) {
+	c := make(chan *Item)
+	e := make(chan error)
+	go func() {
+		for {
+			log.Println("calling brpop on", queue)
+			_, ns, err := mq.rc.BRPop(5, queueName(queue))
+			if err != nil {
+				e <- err
+				close(e)
+				close(c)
+				return
+			}
+			var v string
+			log.Println("calling get on", queue)
+			v, err = mq.rc.Get(queue + ":" + ns)
+			if err != nil {
+				e <- err
+				close(e)
+				close(c)
+				return
+			}
+			n, err := strconv.Atoi(ns)
+			if err != nil {
+				e <- err
+				close(e)
+				close(c)
+				return
+			}
+			c <- &Item{n, v}
+		}
+	}()
+	return c, e
 }
 
 // GetDel is the "hard" Get. wtf? getdel == pop

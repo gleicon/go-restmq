@@ -6,6 +6,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"regexp"
 
@@ -58,5 +59,32 @@ func QueueHandler(w http.ResponseWriter, r *http.Request) {
 	default:
 		w.Header().Set("Allow", "GET, POST")
 		http.Error(w, http.StatusText(405), 405)
+	}
+}
+
+func CometHandler(w http.ResponseWriter, r *http.Request) {
+	qn := r.URL.Path[len("/c/"):]
+	if !queueRe.MatchString(qn) {
+		http.Error(w, "Invalid queue name", 400)
+		return
+	}
+	if r.Method != "GET" {
+		w.Header().Set("Allow", "GET")
+		http.Error(w, http.StatusText(405), 405)
+	}
+	ic, ec := RestMQ.Join(qn)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+L:
+	for {
+		select {
+		case item := <-ic:
+			item.Write(w)
+		case err := <-ec:
+			log.Println(err)
+			break L
+		case <-w.(http.CloseNotifier).CloseNotify():
+			break L
+		}
 	}
 }
