@@ -41,19 +41,19 @@ uninstall:
 	rm -rf $(TARGET)
 
 dpkg-deps:
-	apt-get install build-essential debhelper devscripts dh-make fakeroot lintian
+	apt-get install build-essential git mercurial debhelper devscripts dh-make fakeroot lintian
 
 make dpkg:
 	dpkg-buildpackage -b -uc -rfakeroot
 
 rpm-deps:
-	yum install gcc make git rpm-build redhat-rpm-config
+	yum install gcc make git mercurial rpm-build redhat-rpm-config
 
 rpm:
 	mkdir -p $(HOME)/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
 	echo '%_topdir $(HOME)/rpmbuild' > ~/.rpmmacros
 	git archive --format tar --prefix=$(SRPM_PKG)/ HEAD . | gzip > $(HOME)/rpmbuild/SOURCES/$(SRPM_TGZ)
-	cp rpm/restmq.spec $(HOME)/rpmbuild/SPECS
+	cp redhat/restmq.spec $(HOME)/rpmbuild/SPECS
 	rpmbuild -ba $(HOME)/rpmbuild/SPECS/restmq.spec
 
 .PHONY: server
