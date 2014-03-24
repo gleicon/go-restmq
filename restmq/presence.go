@@ -16,7 +16,7 @@ type ClientPresence struct {
 	lastPresenceUsedIdx map[string]int
 }
 
-func New() *ClientPresence {
+func NewClientPresence() *ClientPresence {
 	cp := ClientPresence{}
 	cp.presence = make(map[string][]io.Writer)
 	cp.lastPresenceUsedIdx = make(map[string]int)
@@ -58,4 +58,8 @@ func (cp *ClientPresence) RoundRobin(queue string, message []byte) error {
 		cp.presence[queue] = append(cp.presence[queue][:i], cp.presence[queue][i+1:]...)
 	}
 	return nil
+}
+
+func (cp *ClientPresence) Members(queue string) []io.Writer {
+	return cp.presence[queue]
 }

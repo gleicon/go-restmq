@@ -9,6 +9,7 @@ package restmq
 
 import (
 	"errors"
+	"io"
 )
 
 type Queue interface {
@@ -25,6 +26,9 @@ type Queue interface {
 	//
 	// See the queue policy documentation for details.
 	Join(queue string, timeout int, soft bool) (<-chan *Item, <-chan error)
+
+	// Adds client queue and io.Writer to the presence service
+	AddClient(queue string, w io.Writer)
 
 	// Policy returns the current queue policy. If the queue does not
 	// exist, it is created and the default policy is used.
