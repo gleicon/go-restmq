@@ -8,11 +8,7 @@
 package restmq
 
 import (
-	"bufio"
 	"errors"
-	"net/http"
-
-	"code.google.com/p/go.net/websocket"
 )
 
 type Queue interface {
@@ -51,9 +47,3 @@ type Queue interface {
 var (
 	InvalidQueuePolicy = errors.New("Invalid queue policy")
 )
-
-type ClientPresence interface {
-	AddHttpClient(queue string, w http.ResponseWriter) error
-	AddSSEClient(queue string, rw *bufio.ReadWriter) error
-	AddWSClient(queue string, ws *websocket.Conn) error
-}
