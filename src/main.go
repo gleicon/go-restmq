@@ -88,11 +88,13 @@ func setLog(filename string) {
 	signal.Notify(sigc, syscall.SIGHUP)
 	go func() {
 		// Recycle log file on SIGHUP.
+		var fb *os.File
 		for {
 			<-sigc
-			f.Close()
+			fb = f
 			f = openLog(filename)
 			log.SetOutput(f)
+			fb.Close()
 		}
 	}()
 }
@@ -101,7 +103,7 @@ func openLog(filename string) *os.File {
 	f, err := os.OpenFile(
 		filename,
 		os.O_WRONLY|os.O_CREATE|os.O_APPEND,
-		0666,
+		0644,
 	)
 	if err != nil {
 		log.SetOutput(os.Stderr)
