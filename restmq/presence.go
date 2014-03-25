@@ -14,13 +14,27 @@ import (
 type ClientPresence struct {
 	presence            map[string][]io.Writer
 	lastPresenceUsedIdx map[string]int
+	queuesWatchdog      map[string]chan string
 }
 
 func NewClientPresence() *ClientPresence {
 	cp := ClientPresence{}
 	cp.presence = make(map[string][]io.Writer)
 	cp.lastPresenceUsedIdx = make(map[string]int)
+	cp.queuesWatchdog = make(map[string]chan string)
 	return &cp
+}
+
+func (cp *ClientPresence) dispatcher(queue string, watchdog *chan string) {
+
+}
+
+func (cp *ClientPresence) supervisor(queues []string) {
+	for _, q := range queues {
+		qch := make(chan string)
+		cp.queuesWatchdog[q] = qch
+		go cp.dispatcher(q, &qch)
+	}
 }
 
 func (cp *ClientPresence) Add(queue string, w io.Writer) error {
