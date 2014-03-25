@@ -75,7 +75,7 @@ func httpError(w http.ResponseWriter, r *http.Request, code int, msg string) {
 func httpLogger(r *http.Request, created time.Time, status, bytes int) {
 	//fmt.Println(httpxtra.ApacheCommonLog(r, created, status, bytes))
 
-	var proto, info string
+	var proto, msg string
 
 	if r.TLS == nil {
 		proto = "HTTP"
@@ -84,7 +84,7 @@ func httpLogger(r *http.Request, created time.Time, status, bytes int) {
 	}
 
 	if tmp := context.Get(r, "log"); tmp != nil {
-		info = fmt.Sprintf(" (%s)", tmp)
+		msg = fmt.Sprintf(" (%s)", tmp)
 		context.Clear(r)
 	}
 
@@ -96,6 +96,6 @@ func httpLogger(r *http.Request, created time.Time, status, bytes int) {
 		remoteIP(r),
 		bytes,
 		time.Since(created),
-		info,
+		msg,
 	)
 }
