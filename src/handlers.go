@@ -20,7 +20,7 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	qs, err := RestMQ.ListQueues()
 	if err != nil {
 		http.Error(w, http.StatusText(503), 503)
-		context.Set(r, "info", err)
+		context.Set(r, "log", err)
 		return
 	}
 	for _, e := range qs {
@@ -45,7 +45,7 @@ func QueueHandler(w http.ResponseWriter, r *http.Request) {
 		item, err := RestMQ.Get(qn, soft)
 		if err != nil {
 			http.Error(w, http.StatusText(503), 503)
-			context.Set(r, "info", err)
+			context.Set(r, "log", err)
 			return
 		} else if item == nil {
 			http.Error(w, "Queue is empty", 404)
@@ -61,7 +61,7 @@ func QueueHandler(w http.ResponseWriter, r *http.Request) {
 		item, err := RestMQ.Add(qn, v)
 		if err != nil {
 			http.Error(w, http.StatusText(503), 503)
-			context.Set(r, "info", err)
+			context.Set(r, "log", err)
 			return
 		}
 		item.WriteJSON(w)
@@ -86,7 +86,7 @@ func PolicyHandler(w http.ResponseWriter, r *http.Request) {
 		policy, err := RestMQ.Policy(qn)
 		if err != nil {
 			http.Error(w, http.StatusText(503), 503)
-			context.Set(r, "info", err)
+			context.Set(r, "log", err)
 			return
 		}
 		fmt.Fprintf(w, "%s\r\n", policy)
@@ -98,7 +98,7 @@ func PolicyHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			http.Error(w, http.StatusText(503), 503)
-			context.Set(r, "info", err)
+			context.Set(r, "log", err)
 			return
 		}
 		fmt.Fprintf(w, "OK\r\n")
@@ -174,7 +174,7 @@ func CometHandler(w http.ResponseWriter, r *http.Request) {
 	f, ok := w.(http.Flusher)
 	if !ok {
 		http.Error(w, http.StatusText(503), 503)
-		context.Set(r, "info", "Chunked responses not supported")
+		context.Set(r, "log", "Chunked responses not supported")
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -190,7 +190,7 @@ L:
 			j.Encode(item)
 			f.Flush()
 		case err := <-e:
-			context.Set(r, "info", err)
+			context.Set(r, "log", err)
 			break L
 		case <-w.(http.CloseNotifier).CloseNotify():
 			break L
@@ -225,7 +225,7 @@ L:
 				break L
 			}
 		case err := <-e:
-			context.Set(r, "info", err)
+			context.Set(r, "log", err)
 			break L
 		}
 	}
@@ -248,7 +248,7 @@ L:
 				break L
 			}
 		case err := <-e:
-			context.Set(r, "info", err)
+			context.Set(r, "log", err)
 			break L
 		}
 	}
