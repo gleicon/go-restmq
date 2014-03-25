@@ -25,6 +25,7 @@ package restmq_redis
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"strconv"
 	"time"
@@ -47,12 +48,13 @@ const (
 type Queue struct {
 	rc *redis.Client
 	qi []string // queue index
+	cp *restmq.ClientPresence
 }
 
 // New creates, initializes and returns a new instance of RestMQ.
 // RestMQ instances are safe for concurrent access.
 func New(addr string) *Queue {
-	mq := &Queue{redis.New(addr), []string{}}
+	mq := &Queue{redis.New(addr), []string{}, restmq.NewClientPresence()}
 	go mq.runIndex(30 * time.Second)
 	return mq
 }
@@ -217,6 +219,11 @@ func (mq *Queue) Join(queue string, timeout int, soft bool) (<-chan *restmq.Item
 		}
 	}()
 	return c, e
+}
+
+// populates presence with each client io.Writer
+func (mq *Queue) AddClient(queue string, w io.Writer) {
+	mq.cp.Add(queue, w)
 }
 
 // GetDel is the "hard" Get.
