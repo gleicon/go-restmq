@@ -28,6 +28,7 @@ import (
 	"io"
 	"log"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/fiorix/go-redis/redis"
@@ -47,14 +48,19 @@ const (
 // Queue is the RestMQ queue handler.
 type Queue struct {
 	rc *redis.Client
-	qi []string // queue index
 	cp *restmq.ClientPresence
+
+	qimu sync.Mutex // protects qi
+	qi   []string   // queue index
 }
 
 // New creates, initializes and returns a new instance of RestMQ.
 // RestMQ instances are safe for concurrent access.
 func New(addr string) *Queue {
-	mq := &Queue{redis.New(addr), []string{}, restmq.NewClientPresence()}
+	mq := &Queue{
+		rc: redis.New(addr),
+		cp: restmq.NewClientPresence(),
+	}
 	go mq.runIndex(30 * time.Second)
 	return mq
 }
@@ -69,7 +75,9 @@ func (mq *Queue) runIndex(interval time.Duration) {
 			log.Print("Error fetching queue index", err)
 		} else {
 			log.Print("Queue index cache updated")
+			mq.qimu.Lock()
 			mq.qi = qi
+			mq.qimu.Unlock()
 		}
 		time.Sleep(interval)
 	}
@@ -80,6 +88,8 @@ func (mq *Queue) runIndex(interval time.Duration) {
 // by the goroutine sleep
 // I promise it wont be too expensive.
 func (mq *Queue) updateIndex(queue string) {
+	mq.qimu.Lock()
+	defer mq.qimu.Unlock()
 	for _, name := range mq.qi {
 		if name == queue {
 			return // queue already indexed, bye
