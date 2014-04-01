@@ -21,7 +21,7 @@
 //  an element with the payload
 //  an entry into the list with the element key
 
-package restmq_redis
+package rmq
 
 import (
 	"fmt"
