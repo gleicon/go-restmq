@@ -16,8 +16,30 @@ import (
 	"github.com/gleicon/go-restmq/restmq"
 )
 
-func IndexHandler(w http.ResponseWriter, r *http.Request) {
-	qs, err := RestMQ.ListQueues()
+func (s *httpServer) route() {
+	// Static file server.
+	http.Handle("/static/", http.FileServer(http.Dir(s.config.DocumentRoot)))
+	http.Handle("/dashboard/", http.FileServer(http.Dir(s.config.DocumentRoot)))
+
+	// Other handlers.
+	http.HandleFunc("/", s.indexHandler)
+
+	// Queue handlers
+	http.HandleFunc("/q/", s.queueHandler)
+	http.HandleFunc("/c/", s.cometHandler)
+	http.HandleFunc("/sse/", s.sseHandler)
+	http.Handle("/ws/", websocket.Handler(s.websocketHandler))
+
+	// Management dashboard and control APIs
+	http.HandleFunc("/api/policy/", s.policyHandler)
+	http.HandleFunc("/api/pause/", s.pauseHandler)
+	http.HandleFunc("/api/start/", s.startHandler)
+	http.HandleFunc("/api/status/", s.statusHandler)
+	http.HandleFunc("/api/serverstatus/", s.serverStatusHandler)
+}
+
+func (s *httpServer) indexHandler(w http.ResponseWriter, r *http.Request) {
+	qs, err := s.rmq.ListQueues()
 	if err != nil {
 		http.Error(w, http.StatusText(503), 503)
 		context.Set(r, "log", err)
@@ -28,7 +50,7 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func QueueHandler(w http.ResponseWriter, r *http.Request) {
+func (s *httpServer) queueHandler(w http.ResponseWriter, r *http.Request) {
 	qn := r.URL.Path[len("/q/"):]
 	if !queueRe.MatchString(qn) {
 		http.Error(w, "Invalid queue name", 400)
@@ -42,7 +64,7 @@ func QueueHandler(w http.ResponseWriter, r *http.Request) {
 		} else {
 			soft = true
 		}
-		item, err := RestMQ.Get(qn, soft)
+		item, err := s.rmq.Get(qn, soft)
 		if err != nil {
 			http.Error(w, http.StatusText(503), 503)
 			context.Set(r, "log", err)
@@ -58,7 +80,7 @@ func QueueHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Missing 'value=' argument", 400)
 			return
 		}
-		item, err := RestMQ.Add(qn, v)
+		item, err := s.rmq.Add(qn, v)
 		if err != nil {
 			http.Error(w, http.StatusText(503), 503)
 			context.Set(r, "log", err)
@@ -75,7 +97,7 @@ func QueueHandler(w http.ResponseWriter, r *http.Request) {
 
 // /api/policy/<queuename> - switch between broadcast and roundrobin delivery
 // for streaming methods
-func PolicyHandler(w http.ResponseWriter, r *http.Request) {
+func (s *httpServer) policyHandler(w http.ResponseWriter, r *http.Request) {
 	qn := r.URL.Path[len("/api/policy/"):]
 	if !queueRe.MatchString(qn) {
 		http.Error(w, "Invalid queue name", 400)
@@ -83,7 +105,7 @@ func PolicyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	switch r.Method {
 	case "GET":
-		policy, err := RestMQ.Policy(qn)
+		policy, err := s.rmq.Policy(qn)
 		if err != nil {
 			http.Error(w, http.StatusText(503), 503)
 			context.Set(r, "log", err)
@@ -91,7 +113,7 @@ func PolicyHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		fmt.Fprintf(w, "%s\r\n", policy)
 	case "POST":
-		err := RestMQ.SetPolicy(qn, r.FormValue("set"))
+		err := s.rmq.SetPolicy(qn, r.FormValue("set"))
 		if err != nil {
 			if err == restmq.InvalidQueuePolicy {
 				http.Error(w, err.Error(), 400)
@@ -109,7 +131,7 @@ func PolicyHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // /api/pause/<queuename> - pause queue streaming and hold back messages
-func PauseHandler(w http.ResponseWriter, r *http.Request) {
+func (s *httpServer) pauseHandler(w http.ResponseWriter, r *http.Request) {
 	qn := r.URL.Path[len("/api/pause/"):]
 	if !queueRe.MatchString(qn) {
 		http.Error(w, "Invalid queue name", 400)
@@ -123,7 +145,7 @@ func PauseHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // /api/start/<queuename> - start queue streaming
-func StartHandler(w http.ResponseWriter, r *http.Request) {
+func (s *httpServer) startHandler(w http.ResponseWriter, r *http.Request) {
 	qn := r.URL.Path[len("/api/start/"):]
 	if !queueRe.MatchString(qn) {
 		http.Error(w, "Invalid queue name", 400)
@@ -137,7 +159,7 @@ func StartHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // /api/status/<queuename> - status for a given queue
-func StatusHandler(w http.ResponseWriter, r *http.Request) {
+func (s *httpServer) statusHandler(w http.ResponseWriter, r *http.Request) {
 	qn := r.URL.Path[len("/api/status/"):]
 	if !queueRe.MatchString(qn) {
 		http.Error(w, "Invalid queue name", 400)
@@ -151,7 +173,7 @@ func StatusHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // /api/serverstatus - server status
-func ServerStatusHandler(w http.ResponseWriter, r *http.Request) {
+func (s *httpServer) serverStatusHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		w.Header().Set("Allow", "GET")
 		http.Error(w, http.StatusText(405), 405)
@@ -160,7 +182,7 @@ func ServerStatusHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Streamers
-func CometHandler(w http.ResponseWriter, r *http.Request) {
+func (s *httpServer) cometHandler(w http.ResponseWriter, r *http.Request) {
 	qn := r.URL.Path[len("/c/"):]
 	if !queueRe.MatchString(qn) {
 		http.Error(w, "Invalid queue name", 400)
@@ -180,8 +202,8 @@ func CometHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 	f.Flush()
-	RestMQ.AddClient(qn, w)
-	c, e := RestMQ.Join(qn, 30, false)
+	s.rmq.AddClient(qn, w)
+	c, e := s.rmq.Join(qn, 30, false)
 	j := json.NewEncoder(w)
 L:
 	for {
@@ -198,7 +220,7 @@ L:
 	}
 }
 
-func SSEHandler(w http.ResponseWriter, r *http.Request) {
+func (s *httpServer) sseHandler(w http.ResponseWriter, r *http.Request) {
 	qn := r.URL.Path[len("/sse/"):]
 	if !queueRe.MatchString(qn) {
 		http.Error(w, "Invalid queue name", 400)
@@ -215,8 +237,8 @@ func SSEHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer conn.Close()
-	RestMQ.AddClient(qn, rw) // needs to repackage it into sse proto
-	c, e := RestMQ.Join(qn, 30, false)
+	s.rmq.AddClient(qn, rw) // needs to repackage it into sse proto
+	c, e := s.rmq.Join(qn, 30, false)
 L:
 	for {
 		select {
@@ -231,14 +253,14 @@ L:
 	}
 }
 
-func WebsocketHandler(ws *websocket.Conn) {
+func (s *httpServer) websocketHandler(ws *websocket.Conn) {
 	r := ws.Request()
 	qn := r.URL.Path[len("/ws/"):]
 	if !queueRe.MatchString(qn) {
 		ws.Close()
 	}
-	RestMQ.AddClient(qn, ws)
-	c, e := RestMQ.Join(qn, 600, false)
+	s.rmq.AddClient(qn, ws)
+	c, e := s.rmq.Join(qn, 600, false)
 	j := json.NewEncoder(ws)
 L:
 	for {

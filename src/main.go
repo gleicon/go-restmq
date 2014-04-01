@@ -16,21 +16,15 @@ import (
 	html "html/template"
 	text "text/template"
 
-	"github.com/gleicon/go-restmq/restmq"
-	"github.com/gleicon/go-restmq/restmq/redis"
+	restmq "github.com/gleicon/go-restmq/restmq/redis"
 )
 
 var (
 	VERSION = "tip"
 
-	Config *ConfigData
-
 	// Templates
 	HTML *html.Template
 	TEXT *text.Template
-
-	// DBs
-	RestMQ restmq.Queue
 )
 
 func main() {
@@ -43,7 +37,7 @@ func main() {
 	flag.Parse()
 
 	var err error
-	Config, err = LoadConfig(*configFile)
+	config, err := loadConfig(*configFile)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -54,11 +48,11 @@ func main() {
 	}
 
 	// Parse templates.
-	HTML = html.Must(html.ParseGlob(Config.TemplatesDir + "/*.html"))
-	TEXT = text.Must(text.ParseGlob(Config.TemplatesDir + "/*.txt"))
+	HTML = html.Must(html.ParseGlob(config.TemplatesDir + "/*.html"))
+	TEXT = text.Must(text.ParseGlob(config.TemplatesDir + "/*.txt"))
 
 	// Set up databases.
-	RestMQ = restmq_redis.New(Config.DB.Redis)
+	rmq := restmq.New(config.DB.Redis)
 
 	// Set GOMAXPROCS and show server info.
 	var cpuinfo string
@@ -70,14 +64,13 @@ func main() {
 	}
 	log.Printf("restmqd v%s (%s)", VERSION, cpuinfo)
 
-	// Add routes, and run HTTP and HTTPS servers.
-	routeHTTP()
-	if Config.HTTP.Addr != "" {
-		go listenHTTP()
-	}
-	if Config.HTTPS.Addr != "" {
-		go listenHTTPS()
-	}
+	// Start HTTP server.
+	s := new(httpServer)
+	s.init(config, rmq)
+	go s.ListenAndServe()
+	go s.ListenAndServeTLS()
+
+	// Sleep forever.
 	select {}
 }
 

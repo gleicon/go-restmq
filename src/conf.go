@@ -10,12 +10,13 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
-type ConfigData struct {
+type configFile struct {
 	Debug        bool   `toml:"debug"`
 	TemplatesDir string `toml:"templates_dir"`
 	DocumentRoot string `toml:"document_root"`
 
 	DB struct {
+		MySQL string `toml:"mysql"`
 		Redis string `toml:"redis"`
 	} `toml:"db"`
 
@@ -32,8 +33,8 @@ type ConfigData struct {
 }
 
 // LoadConfig reads and parses the configuration file.
-func LoadConfig(filename string) (*ConfigData, error) {
-	c := &ConfigData{}
+func loadConfig(filename string) (*configFile, error) {
+	c := &configFile{}
 	if _, err := toml.DecodeFile(filename, c); err != nil {
 		return nil, err
 	}
