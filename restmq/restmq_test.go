@@ -5,18 +5,16 @@
 package restmq
 
 import (
-	"fmt"
 	"math/rand"
+	"sync"
 	"testing"
 	"time"
 )
 
-var rmq *RestMQ
-
-func init() {
-	rmq = New("127.0.0.1:6379")
-	rand.Seed(time.Now().UTC().UnixNano())
-}
+var (
+	testMQ   *RestMQ
+	testOnce sync.Once
+)
 
 /*
 func randomString(l int) string {
@@ -34,22 +32,52 @@ func randInt(min int, max int) int {
 
 // Tests
 
-func TestAddAndGet(t *testing.T) {
-	item1, err := rmq.Add("foobar-queue", "foobar-value")
+func startTestMQ() {
+	testMQ = New("127.0.0.1:6379")
+	rand.Seed(time.Now().UTC().UnixNano())
+}
+
+func TestAdd(t *testing.T) {
+	testOnce.Do(startTestMQ)
+
+	item, err := testMQ.Add("myqueue", "foobar")
 	if err != nil {
-		t.Error(err)
-		return
-	} else if item1["value"] != "foobar-value" {
-		t.Error(fmt.Sprintf("Unexpected item's value: %#v", item1))
+		t.Fatal(err)
+	}
+
+	if item["value"] != "foobar" {
+		t.Fatalf("Want 'foobar', have '%#v'", item)
+	}
+}
+
+func TestGet(t *testing.T) {
+	item, err := testMQ.Get("myqueue", true) // pop
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if item["value"] != "foobar" {
+		t.Fatalf("Want 'foobar', have '%#v'", item["value"])
 		return
 	}
-	item2, err := rmq.Get("foobar-queue", false)
-	if err != nil {
-		t.Error(err)
-		return
-	} else if item2["value"] != item1["value"] {
-		t.Error(fmt.Sprintf("Unexpected item's value: %#v != %#v",
-			item2["value"], item1["value"]))
-		return
+}
+
+func BenchmarkAdd(b *testing.B) {
+	var err error
+	for n := 0; n < b.N; n++ {
+		if _, err = testMQ.Add("myqueue", "foobar"); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkGet(b *testing.B) {
+	testMQ.Add("myqueue", "foobar")
+	defer testMQ.Get("myqueue", true)
+	var err error
+	for n := 0; n < b.N; n++ {
+		if _, err = testMQ.Get("myqueue", false); err != nil {
+			b.Fatal(err)
+		}
 	}
 }
