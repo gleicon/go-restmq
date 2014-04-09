@@ -72,7 +72,7 @@ func (mq *Queue) runIndex(interval time.Duration) {
 	)
 	for {
 		if qi, err = mq.rc.SMembers(QueueIndex); err != nil {
-			log.Print("Error fetching queue index", err)
+			log.Println("Error fetching queue index:", err)
 		} else {
 			log.Print("Queue index cache updated")
 			mq.qimu.Lock()
